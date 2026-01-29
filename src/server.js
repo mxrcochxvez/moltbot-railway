@@ -96,6 +96,7 @@ const startApp = async () => {
     
     // Middleware for setup protection
     const checkSetupAuth = (req, res, next) => {
+        const SETUP_PASSWORD = process.env.SETUP_PASSWORD;
         if (!SETUP_PASSWORD) return next();
 
         const auth = { login: 'admin', password: SETUP_PASSWORD };
