@@ -85,6 +85,11 @@ RUN sudo curl -L https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x8
 # Clean up brew cache
 RUN brew cleanup
 
+# Create data directories with proper permissions
+# Railway mounts /data so we need to handle permissions at runtime
+RUN sudo mkdir -p /data/.clawdbot /data/workspace \
+  && sudo chown -R railway:railway /data
+
 WORKDIR /app
 
 # Wrapper deps
@@ -107,6 +112,20 @@ COPY --chown=railway:railway src ./src
 
 # Environment variables
 ENV PORT=8080
+ENV CLAWDBOT_STATE_DIR=/data/.clawdbot
+ENV CLAWDBOT_WORKSPACE_DIR=/data/workspace
 EXPOSE 8080
 
+# Entrypoint to fix permissions at runtime (Railway volume mount)
+COPY --chown=railway:railway <<EOF /app/entrypoint.sh
+#!/bin/bash
+set -e
+# Ensure data directories exist and are writable
+sudo mkdir -p /data/.clawdbot /data/workspace 2>/dev/null || true
+sudo chown -R railway:railway /data 2>/dev/null || true
+exec "$@"
+EOF
+RUN chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["node", "src/server.js"]
