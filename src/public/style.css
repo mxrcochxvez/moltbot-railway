@@ -57,8 +57,8 @@ body {
 
 .container {
     width: 100%;
-    max-width: 440px;
-    padding: 3rem 2.5rem;
+    max-width: 800px;
+    padding: 2.5rem;
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -68,44 +68,30 @@ body {
     animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes fadeUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-header {
-    text-align: center;
-    margin-bottom: 2.5rem;
-}
-
-.logo {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin-bottom: 0.5rem;
-}
-
-.logo h1 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-}
-
-.subtitle {
-    color: var(--text-muted);
-    font-size: 0.95rem;
-    font-weight: 400;
+#setup-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
 }
 
 .form-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: 0;
+}
+
+/* Full width elements */
+.full-width {
+    grid-column: span 2;
+}
+
+/* Responsive: Stack on mobile */
+@media (max-width: 640px) {
+    #setup-form {
+        grid-template-columns: 1fr;
+    }
+    .full-width {
+        grid-column: span 1;
+    }
 }
 
 label {
@@ -114,6 +100,15 @@ label {
     font-size: 0.85rem;
     font-weight: 500;
     color: var(--text-muted);
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-top: 0;
+    grid-column: span 2;
 }
 
 input, select {
