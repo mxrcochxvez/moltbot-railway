@@ -87,6 +87,23 @@ const setupProxy = () => {
 const crypto = require('crypto');
 require('dotenv').config({ path: path.join(process.env.DATA_DIR || path.join(process.cwd(), 'data'), '.env') });
 
+// Global Health Check (Available in both modes)
+app.get('/health', async (req, res) => {
+    const initialized = await fs.pathExists(CONFIG_MARKER);
+    const moltbotStatus = moltbotProcess && !moltbotProcess.killed ? 'running' : 'stopped';
+    const ttydStatus = ttydProcess && !ttydProcess.killed ? 'running' : 'stopped';
+    
+    res.json({
+        status: initialized ? 'active' : 'setup_needed',
+        initialized,
+        services: {
+            moltbot: moltbotStatus,
+            ttyd: ttydStatus
+        },
+        uptime: process.uptime()
+    });
+});
+
 // ... existing code ...
 
 const startApp = async () => {
