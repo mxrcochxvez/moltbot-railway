@@ -137,6 +137,25 @@ async function startApp() {
             }
         });
         
+        // Track if Moltbot is ready
+        let moltbotReady = false;
+        setTimeout(() => { moltbotReady = true; }, 5000); // Give it 5 seconds to start
+        
+        // Fallback page if Moltbot isn't responding
+        app.get('/', async (req, res, next) => {
+            if (!moltbotReady || !moltbotProcess || moltbotProcess.killed) {
+                return res.status(503).send(`
+                    <html><body style="font-family:system-ui;padding:2rem;background:#111;color:#fff">
+                    <h1>⏳ Moltbot Starting...</h1>
+                    <p>The AI agent is initializing. This page will refresh automatically.</p>
+                    <p>If this persists, check the Railway logs for errors.</p>
+                    <script>setTimeout(() => location.reload(), 5000);</script>
+                    </body></html>
+                `);
+            }
+            next();
+        });
+        
         // --- Protected Endpoints (App Mode) ---
         app.use(bodyParser.json());
         
