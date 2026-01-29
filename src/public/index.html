@@ -113,8 +113,39 @@
         </div>
 
         <script>
-            document.getElementById("setup-form")
-                .addEventListener("submit", async (e) => {
+                // Check for existing env vars
+                try {
+                    const statusRes = await fetch('/api/setup/status');
+                    const status = await statusRes.json();
+                    
+                    if (status.hasLlmKey) {
+                        const el = document.getElementById('llmSdkKey');
+                        el.placeholder = 'Set in Environment (Leave empty to use)';
+                        el.required = false;
+                        el.parentElement.classList.add('prefilled');
+                    }
+                    if (status.hasBotToken) {
+                        const el = document.getElementById('botToken');
+                        el.placeholder = 'Set in Environment (Leave empty to use)';
+                        el.required = false;
+                        el.parentElement.classList.add('prefilled');
+                    }
+                    if (status.hasGatewayToken) {
+                        const el = document.getElementById('gatewayToken');
+                        el.placeholder = 'Set in Environment (Leave empty to use)';
+                        el.parentElement.classList.add('prefilled');
+                    }
+                    if (status.hasBraveKey) {
+                        const el = document.getElementById('braveApiKey');
+                        el.placeholder = 'Set in Environment (Leave empty to use)';
+                        el.parentElement.classList.add('prefilled');
+                    }
+                } catch (e) {
+                    console.error('Failed to check env status', e);
+                }
+
+                document.getElementById('setup-form').addEventListener('submit', async (e) => {
+                    // ... existing submit logic ...
                     e.preventDefault();
                     const btn = document.getElementById(
                         "deploy-btn",

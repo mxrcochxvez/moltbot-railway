@@ -152,22 +152,34 @@ const startApp = async () => {
         app.use(express.static(path.join(__dirname, 'public')));
         app.use(bodyParser.json());
 
+        app.get('/api/setup/status', (req, res) => {
+            res.json({
+                hasBraveKey: !!process.env.BRAVE_API_KEY,
+                hasGatewayToken: !!process.env.CLAWDBOT_GATEWAY_TOKEN,
+                hasLlmKey: !!process.env.LLM_API_KEY,
+                hasBotToken: !!process.env.DISCORD_TOKEN
+            });
+        });
+
         app.post('/api/setup', async (req, res) => {
             try {
                 const { llmSdkKey, botToken, provider, gatewayToken, braveApiKey } = req.body;
                 
-                // Use provided token or generate new one
-                const finalGatewayToken = gatewayToken || crypto.randomBytes(32).toString('hex');
+                // Prioritize form input, fallback to existing Env Var, finally generate/empty
+                const finalGatewayToken = gatewayToken || process.env.CLAWDBOT_GATEWAY_TOKEN || crypto.randomBytes(32).toString('hex');
+                const finalBraveKey = braveApiKey || process.env.BRAVE_API_KEY || '';
+                const finalLlmKey = llmSdkKey || process.env.LLM_API_KEY || '';
+                const finalBotToken = botToken || process.env.DISCORD_TOKEN || '';
 
                 console.log('Running setup...');
                 
                 // Write env file
                 const envContent = `
 LLM_PROVIDER=${provider}
-LLM_API_KEY=${llmSdkKey}
-DISCORD_TOKEN=${botToken}
+LLM_API_KEY=${finalLlmKey}
+DISCORD_TOKEN=${finalBotToken}
 CLAWDBOT_GATEWAY_TOKEN=${finalGatewayToken}
-BRAVE_API_KEY=${braveApiKey || ''}
+BRAVE_API_KEY=${finalBraveKey}
                 `;
                 await fs.writeFile(path.join(DATA_DIR, '.env'), envContent);
                 

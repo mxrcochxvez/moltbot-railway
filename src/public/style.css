@@ -162,6 +162,13 @@ select {
     color: rgba(255, 255, 255, 0.3);
 }
 
+.form-group.prefilled label::after {
+    content: ' ✓ Configured';
+    color: var(--success);
+    font-size: 0.8em;
+    margin-left: 8px;
+}
+
 button {
     width: 100%;
     padding: 0.9rem;
