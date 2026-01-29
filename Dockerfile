@@ -8,12 +8,12 @@ FROM node:22-bookworm AS clawdbot-build
 # Install dependencies for building
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    git \
-    ca-certificates \
-    curl \
-    python3 \
-    make \
-    g++ \
+  git \
+  ca-certificates \
+  curl \
+  python3 \
+  make \
+  g++ \
   && rm -rf /var/lib/apt/lists/*
 
 # Install Bun
@@ -27,17 +27,19 @@ WORKDIR /clawdbot
 # Clone Moltbot (pinned version)
 ARG CLAWDBOT_TAG=v2026.1.25
 RUN git clone --depth 1 --branch "${CLAWDBOT_TAG}" https://github.com/moltbot/moltbot.git . || \
-    git clone --depth 1 https://github.com/moltbot/moltbot.git .
+  git clone --depth 1 https://github.com/moltbot/moltbot.git .
 
 # Patch package.json if needed (copied from reference)
 # Relax version requirements for workspace packages
 RUN set -eux; \
   find ./extensions -name 'package.json' -type f | while read -r f; do \
-    sed -i -E 's/"clawdbot"[[:space:]]*:[[:space:]]*">=[^"]+"/"clawdbot": "*"/g' "$f"; \
-    sed -i -E 's/"clawdbot"[[:space:]]*:[[:space:]]*"workspace:[^"]+"/"clawdbot": "*"/g' "$f"; \
+  sed -i -E 's/"clawdbot"[[:space:]]*:[[:space:]]*">=[^"]+"/"clawdbot": "*"/g' "$f"; \
+  sed -i -E 's/"clawdbot"[[:space:]]*:[[:space:]]*"workspace:[^"]+"/"clawdbot": "*"/g' "$f"; \
   done
 
 RUN pnpm install --no-frozen-lockfile
+# Limit memory to avoid OOM on Railway builders
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN pnpm build
 ENV CLAWDBOT_PREFER_PNPM=1
 RUN pnpm ui:install && pnpm ui:build
@@ -52,18 +54,18 @@ ENV NODE_ENV=production
 # Install dependencies for Linuxbrew and general use
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    ca-certificates \
-    curl \
-    git \
-    build-essential \
-    procps \
-    file \
-    sudo \
+  ca-certificates \
+  curl \
+  git \
+  build-essential \
+  procps \
+  file \
+  sudo \
   && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user (linuxbrew requirement)
 RUN useradd -m -s /bin/bash railway \
-    && echo 'railway ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+  && echo 'railway ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 USER railway
 WORKDIR /home/railway
@@ -76,9 +78,11 @@ ENV PATH="/home/railway/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/bin:${PATH}"
 ENV MANPATH="/home/railway/.linuxbrew/share/man:/home/linuxbrew/.linuxbrew/share/man:${MANPATH}"
 ENV INFOPATH="/home/railway/.linuxbrew/share/info:/home/linuxbrew/.linuxbrew/share/info:${INFOPATH}"
 
-# Install ttyd via brew
-RUN brew install ttyd
-# Clean up brew cache to reduce image size
+# Install ttyd (static binary) to save build resources (avoiding brew install during build)
+RUN sudo curl -L https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64 -o /usr/local/bin/ttyd \
+  && sudo chmod +x /usr/local/bin/ttyd
+
+# Clean up brew cache
 RUN brew cleanup
 
 WORKDIR /app
