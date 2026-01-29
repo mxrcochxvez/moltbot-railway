@@ -78,17 +78,36 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="botToken">Discord/Telegram Token</label>
-                    <input
-                        type="password"
-                        id="botToken"
-                        name="botToken"
-                        placeholder="Token"
-                        required
-                    >
-                    <span class="hint"
-                    >The bot token from Discord or Telegram developer
-                        portal</span>
+                    <label>Chat Platform</label>
+                    <div class="select-wrapper">
+                        <select id="platform" name="platform" onchange="togglePlatformFields()">
+                            <option value="discord">Discord</option>
+                            <option value="telegram">Telegram (Requires Pairing)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="discord-field" class="form-group">
+                    <label for="botToken">Discord Token</label>
+                    <input type="password" id="botToken" name="botToken" placeholder="Bot Token">
+                    <span class="hint">From Discord Developer Portal (Requires Message Content Intent)</span>
+                </div>
+
+                <div id="telegram-field" class="form-group hidden">
+                    <label for="telegramToken">Telegram Token</label>
+                    <input type="password" id="telegramToken" name="telegramToken" placeholder="123456:ABC-...">
+                    <span class="hint">From @BotFather</span>
+                </div>
+
+                <!-- Pairing Section (Initially Hidden, shown if Telegram selected or after setup) -->
+                <div id="pairing-section" class="card hidden">
+                    <h3>Device Pairing</h3>
+                    <p class="subtitle">If your bot asks for approval, enter the code here.</p>
+                    <div class="form-group">
+                        <input type="text" id="pairingCode" placeholder="Enter 6-digit code">
+                        <button type="button" id="approve-btn" class="secondary-btn" onclick="approvePairing()">Approve Pairing</button>
+                    </div>
+                    <div id="pairing-status"></div>
                 </div>
 
                 <div class="form-group">
@@ -144,15 +163,71 @@
                     console.error('Failed to check env status', e);
                 }
 
-                document.getElementById('setup-form').addEventListener('submit', async (e) => {
-                    // ... existing submit logic ...
+            function togglePlatformFields() {
+                const platform = document.getElementById('platform').value;
+                const discordField = document.getElementById('discord-field');
+                const telegramField = document.getElementById('telegram-field');
+                const pairingSection = document.getElementById('pairing-section');
+
+                if (platform === 'discord') {
+                    discordField.classList.remove('hidden');
+                    telegramField.classList.add('hidden');
+                    pairingSection.classList.add('hidden');
+                } else {
+                    discordField.classList.add('hidden');
+                    telegramField.classList.remove('hidden');
+                    pairingSection.classList.remove('hidden');
+                }
+            }
+
+            async function approvePairing() {
+                const code = document.getElementById('pairingCode').value;
+                const btn = document.getElementById('approve-btn');
+                const status = document.getElementById('pairing-status');
+                
+                if (!code) return;
+
+                btn.textContent = 'Approving...';
+                btn.disabled = true;
+
+                try {
+                    const res = await fetch('/api/setup/pairing/approve', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code, channel: 'telegram' }) 
+                    });
+                    const data = await res.json();
+                    if (data.ok) {
+                        status.textContent = '✅ Pairing Approved!';
+                        status.className = 'success';
+                        document.getElementById('pairingCode').value = '';
+                    } else {
+                        throw new Error(data.output || 'Unknown error');
+                    }
+                } catch (e) {
+                    status.textContent = '❌ Error: ' + e.message;
+                    status.className = 'error';
+                } finally {
+                    btn.textContent = 'Approve Pairing';
+                    btn.disabled = false;
+                }
+            }
+
+            // Init state
+            togglePlatformFields();
+
+            document.getElementById("setup-form")
+                .addEventListener("submit", async (e) => {
                     e.preventDefault();
-                    const btn = document.getElementById(
-                        "deploy-btn",
-                    );
-                    const status = document.getElementById(
-                        "status-message",
-                    );
+                    // ... (generic collection handled below)
+                    
+                    const platform = document.getElementById('platform').value;
+                    let botToken = '';
+                    if (platform === 'discord') botToken = document.getElementById('botToken').value;
+                    else botToken = document.getElementById('telegramToken').value;
+
+                    const btn = document.getElementById("deploy-btn");
+                    const status = document.getElementById("status-message");
 
                     btn.classList.add("loading");
                     status.textContent = "";
@@ -161,7 +236,8 @@
                     const formData = {
                         provider: document.getElementById('provider').value,
                         llmSdkKey: document.getElementById('llmSdkKey').value,
-                        botToken: document.getElementById('botToken').value,
+                        botToken: botToken,
+                        platform: platform, // Pass platform to server
                         gatewayToken: document.getElementById('gatewayToken').value,
                         braveApiKey: document.getElementById('braveApiKey').value
                     };

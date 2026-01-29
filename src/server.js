@@ -143,6 +143,27 @@ const startApp = async () => {
             }
         });
 
+        // Pairing Approval Endpoint
+        app.post('/api/setup/pairing/approve', checkSetupAuth, (req, res) => {
+            const { code, channel } = req.body;
+            if (!code) return res.status(400).json({ ok: false, output: 'Missing code' });
+
+            const cmd = 'node';
+            const args = ['/clawdbot/dist/entry.js', 'pairing', 'approve', channel || 'telegram', code];
+            
+            console.log(`Executing: ${cmd} ${args.join(' ')}`);
+
+            const proc = spawn(cmd, args);
+            let output = '';
+
+            proc.stdout.on('data', d => output += d.toString());
+            proc.stderr.on('data', d => output += d.toString());
+
+            proc.on('close', (code) => {
+                res.json({ ok: code === 0, output });
+            });
+        });
+
         setupProxy();
     } else {
         console.log('Configuration missing. Starting setup mode.');
@@ -163,13 +184,17 @@ const startApp = async () => {
 
         app.post('/api/setup', async (req, res) => {
             try {
-                const { llmSdkKey, botToken, provider, gatewayToken, braveApiKey } = req.body;
+                const { llmSdkKey, botToken, provider, gatewayToken, braveApiKey, platform } = req.body;
                 
                 // Prioritize form input, fallback to existing Env Var, finally generate/empty
                 const finalGatewayToken = gatewayToken || process.env.CLAWDBOT_GATEWAY_TOKEN || crypto.randomBytes(32).toString('hex');
                 const finalBraveKey = braveApiKey || process.env.BRAVE_API_KEY || '';
                 const finalLlmKey = llmSdkKey || process.env.LLM_API_KEY || '';
-                const finalBotToken = botToken || process.env.DISCORD_TOKEN || '';
+                
+                // Handle Platform-specific token
+                const isDiscord = platform === 'discord';
+                const finalDiscordToken = isDiscord ? (botToken || process.env.DISCORD_TOKEN || '') : '';
+                const finalTelegramToken = !isDiscord ? (botToken || process.env.TELEGRAM_TOKEN || '') : '';
 
                 console.log('Running setup...');
                 
@@ -177,7 +202,8 @@ const startApp = async () => {
                 const envContent = `
 LLM_PROVIDER=${provider}
 LLM_API_KEY=${finalLlmKey}
-DISCORD_TOKEN=${finalBotToken}
+DISCORD_TOKEN=${finalDiscordToken}
+TELEGRAM_TOKEN=${finalTelegramToken}
 CLAWDBOT_GATEWAY_TOKEN=${finalGatewayToken}
 BRAVE_API_KEY=${finalBraveKey}
                 `;
