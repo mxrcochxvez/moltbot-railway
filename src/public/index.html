@@ -51,26 +51,34 @@
 
             <form id="setup-form">
                 <div class="form-group">
-                    <label for="provider">LLM Provider</label>
+                    <label for="authGroup">LLM Provider</label>
                     <div class="select-wrapper">
-                        <select id="provider" name="provider" required>
+                        <select id="authGroup" name="authGroup" required>
                             <option value="anthropic">Anthropic (Claude)</option>
                             <option value="openai">OpenAI (GPT-4)</option>
                             <option value="google">Google (Gemini)</option>
+                            <option value="zai">Z.AI (GLM)</option>
+                            <option value="openrouter">OpenRouter</option>
                             <option value="groq">Groq</option>
-                            <option value="mistral">Mistral AI</option>
-                            <option value="glm">Zhipu AI (GLM)</option>
-                            <option value="ollama">Ollama (Local)</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="llmSdkKey">API Key</label>
+                    <label for="authChoice">Auth Method</label>
+                    <div class="select-wrapper">
+                        <select id="authChoice" name="authChoice" required>
+                            <option value="apiKey">API Key</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="authSecret">API Key</label>
                     <input
                         type="password"
-                        id="llmSdkKey"
-                        name="llmSdkKey"
+                        id="authSecret"
+                        name="authSecret"
                         placeholder="sk-..."
                         required
                     >
@@ -81,15 +89,16 @@
                     <label>Chat Platform</label>
                     <div class="select-wrapper">
                         <select id="platform" name="platform" onchange="togglePlatformFields()">
+                            <option value="none">None (Configure Later)</option>
                             <option value="discord">Discord</option>
-                            <option value="telegram">Telegram (Requires Pairing)</option>
+                            <option value="telegram">Telegram</option>
                         </select>
                     </div>
                 </div>
 
-                <div id="discord-field" class="form-group">
-                    <label for="botToken">Discord Token</label>
-                    <input type="password" id="botToken" name="botToken" placeholder="Bot Token">
+                <div id="discord-field" class="form-group hidden">
+                    <label for="discordToken">Discord Token</label>
+                    <input type="password" id="discordToken" name="discordToken" placeholder="Bot Token">
                     <span class="hint">From Discord Developer Portal (Requires Message Content Intent)</span>
                 </div>
 
@@ -99,10 +108,10 @@
                     <span class="hint">From @BotFather</span>
                 </div>
 
-                <!-- Pairing Section (Initially Hidden, shown if Telegram selected or after setup) -->
+                <!-- Pairing Section -->
                 <div id="pairing-section" class="card hidden">
                     <h3>Device Pairing</h3>
-                    <p class="subtitle">If your bot asks for approval, enter the code here.</p>
+                    <p class="subtitle">After setup, message your bot. Enter the pairing code here to approve.</p>
                     <div class="form-group">
                         <input type="text" id="pairingCode" placeholder="Enter 6-digit code">
                         <button type="button" id="approve-btn" class="secondary-btn" onclick="approvePairing()">Approve Pairing</button>
@@ -110,61 +119,47 @@
                     <div id="pairing-status"></div>
                 </div>
 
-                <div class="form-group">
-                <label for="gatewayToken">Gateway Token (Optional)</label>
-                <input type="password" id="gatewayToken" name="gatewayToken" placeholder="Auto-generated if empty">
-                <span class="hint">Secret token for connecting external clients</span>
-            </div>
-
-            <div class="form-group">
-                <label for="braveApiKey">Brave Search API Key (Optional)</label>
-                <input type="password" id="braveApiKey" name="braveApiKey" placeholder="BS...">
-                <span class="hint">Enable web search capabilities</span>
-            </div>
-
-            <button type="submit" id="deploy-btn" class="full-width">
-                <span class="btn-text">Initialize Agent</span>
-                <div class="loader"></div>
-            </button>
+                <button type="submit" id="deploy-btn" class="full-width">
+                    <span class="btn-text">Run Setup</span>
+                    <div class="loader"></div>
+                </button>
             </form>
 
             <div id="status-message"></div>
+            
+            <div id="log-container" class="card hidden">
+                <h3>Setup Log</h3>
+                <pre id="setup-log"></pre>
+            </div>
         </div>
 
         <script>
-            // Wrap async initialization in IIFE
-            (async function() {
-                // Check for existing env vars
-                try {
-                    const statusRes = await fetch('/api/setup/status');
-                    const status = await statusRes.json();
-                    
-                    if (status.hasLlmKey) {
-                        const el = document.getElementById('llmSdkKey');
-                        el.placeholder = 'Set in Environment (Leave empty to use)';
-                        el.required = false;
-                        el.parentElement.classList.add('prefilled');
-                    }
-                    if (status.hasBotToken) {
-                        const el = document.getElementById('botToken');
-                        el.placeholder = 'Set in Environment (Leave empty to use)';
-                        el.required = false;
-                        el.parentElement.classList.add('prefilled');
-                    }
-                    if (status.hasGatewayToken) {
-                        const el = document.getElementById('gatewayToken');
-                        el.placeholder = 'Set in Environment (Leave empty to use)';
-                        el.parentElement.classList.add('prefilled');
-                    }
-                    if (status.hasBraveKey) {
-                        const el = document.getElementById('braveApiKey');
-                        el.placeholder = 'Set in Environment (Leave empty to use)';
-                        el.parentElement.classList.add('prefilled');
-                    }
-                } catch (e) {
-                    console.error('Failed to check env status', e);
-                }
-            })();
+            // Map auth groups to their choices
+            const authGroupMap = {
+                'anthropic': [{ value: 'apiKey', label: 'Anthropic API key' }],
+                'openai': [{ value: 'openai-api-key', label: 'OpenAI API key' }],
+                'google': [{ value: 'gemini-api-key', label: 'Google Gemini API key' }],
+                'zai': [{ value: 'zai-api-key', label: 'Z.AI (GLM) API key' }],
+                'openrouter': [{ value: 'openrouter-api-key', label: 'OpenRouter API key' }],
+                'groq': [{ value: 'groq-api-key', label: 'Groq API key' }],
+            };
+
+            function updateAuthChoices() {
+                const group = document.getElementById('authGroup').value;
+                const choiceSelect = document.getElementById('authChoice');
+                const choices = authGroupMap[group] || [];
+                
+                choiceSelect.innerHTML = '';
+                choices.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.value;
+                    opt.textContent = c.label;
+                    choiceSelect.appendChild(opt);
+                });
+            }
+
+            document.getElementById('authGroup').addEventListener('change', updateAuthChoices);
+            updateAuthChoices();
 
             function togglePlatformFields() {
                 const platform = document.getElementById('platform').value;
@@ -172,12 +167,13 @@
                 const telegramField = document.getElementById('telegram-field');
                 const pairingSection = document.getElementById('pairing-section');
 
+                discordField.classList.add('hidden');
+                telegramField.classList.add('hidden');
+                pairingSection.classList.add('hidden');
+
                 if (platform === 'discord') {
                     discordField.classList.remove('hidden');
-                    telegramField.classList.add('hidden');
-                    pairingSection.classList.add('hidden');
-                } else {
-                    discordField.classList.add('hidden');
+                } else if (platform === 'telegram') {
                     telegramField.classList.remove('hidden');
                     pairingSection.classList.remove('hidden');
                 }
@@ -187,6 +183,7 @@
                 const code = document.getElementById('pairingCode').value;
                 const btn = document.getElementById('approve-btn');
                 const status = document.getElementById('pairing-status');
+                const platform = document.getElementById('platform').value;
                 
                 if (!code) return;
 
@@ -194,10 +191,10 @@
                 btn.disabled = true;
 
                 try {
-                    const res = await fetch('/api/setup/pairing/approve', {
+                    const res = await fetch('/setup/api/pairing/approve', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ code, channel: 'telegram' }) 
+                        body: JSON.stringify({ code, channel: platform }) 
                     });
                     const data = await res.json();
                     if (data.ok) {
@@ -222,58 +219,57 @@
             document.getElementById("setup-form")
                 .addEventListener("submit", async (e) => {
                     e.preventDefault();
-                    // ... (generic collection handled below)
                     
                     const platform = document.getElementById('platform').value;
-                    let botToken = '';
-                    if (platform === 'discord') botToken = document.getElementById('botToken').value;
-                    else botToken = document.getElementById('telegramToken').value;
-
+                    
                     const btn = document.getElementById("deploy-btn");
-                    const status = document.getElementById("status-message");
+                    const statusEl = document.getElementById("status-message");
+                    const logContainer = document.getElementById("log-container");
+                    const logEl = document.getElementById("setup-log");
 
                     btn.classList.add("loading");
-                    status.textContent = "";
-                    status.className = "";
+                    statusEl.textContent = "";
+                    statusEl.className = "";
 
-                    const formData = {
-                        provider: document.getElementById('provider').value,
-                        llmSdkKey: document.getElementById('llmSdkKey').value,
-                        botToken: botToken,
-                        platform: platform, // Pass platform to server
-                        gatewayToken: document.getElementById('gatewayToken').value,
-                        braveApiKey: document.getElementById('braveApiKey').value
+                    // Build payload matching the new API
+                    const payload = {
+                        authChoice: document.getElementById('authChoice').value,
+                        authSecret: document.getElementById('authSecret').value,
+                        flow: 'quickstart'
                     };
 
+                    // Add channel tokens if selected
+                    if (platform === 'telegram') {
+                        payload.telegramToken = document.getElementById('telegramToken').value;
+                    } else if (platform === 'discord') {
+                        payload.discordToken = document.getElementById('discordToken').value;
+                    }
+
                     try {
-                        const response = await fetch(
-                            "/api/setup",
-                            {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type":
-                                        "application/json",
-                                },
-                                body: JSON.stringify(formData),
-                            },
-                        );
+                        const response = await fetch("/setup/api/run", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(payload),
+                        });
 
                         const result = await response.json();
 
-                        if (result.success) {
-                            status.textContent =
-                                "Setup complete! Connecting to neural interface...";
-                            status.classList.add("success");
+                        // Show log output
+                        logContainer.classList.remove('hidden');
+                        logEl.textContent = result.output || '(no output)';
+
+                        if (result.ok) {
+                            statusEl.textContent = "Setup complete! Redirecting to Moltbot UI...";
+                            statusEl.classList.add("success");
                             setTimeout(() => {
-                                window.location.reload();
+                                window.location.href = '/clawdbot';
                             }, 2000);
                         } else {
-                            throw new Error(result.message);
+                            throw new Error(result.output || 'Setup failed');
                         }
                     } catch (error) {
-                        status.textContent = "Error: " +
-                            error.message;
-                        status.classList.add("error");
+                        statusEl.textContent = "Error: " + error.message;
+                        statusEl.classList.add("error");
                         btn.classList.remove("loading");
                     }
                 });
