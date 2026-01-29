@@ -48,7 +48,8 @@ private template in your Railway dashboard.)_
 1. Fork/Clone this repository.
 2. Create a new project on Railway from GitHub.
 3. Add the following **Environment Variables**:
-   - `SETUP_PASSWORD`: (Required) Password to protect your setup page.
+   - `SETUP_PASSWORD`: (Required) Password to protect your setup page. (Username
+     is `admin`)
    - `BRAVE_API_KEY`: (Optional) API Key for Brave Search.
    - `CLAWDBOT_GATEWAY_TOKEN`: (Optional) Admin token for the gateway.
    - `CLAWDBOT_STATE_DIR`: (Optional) Default: `/data/.clawdbot`
