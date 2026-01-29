@@ -174,6 +174,12 @@ const startApp = async () => {
         app.use(bodyParser.json());
 
         app.get('/api/setup/status', (req, res) => {
+            console.log('Checking Setup Status. Env Vars:', {
+                BRAVE: !!process.env.BRAVE_API_KEY,
+                GATEWAY: !!process.env.CLAWDBOT_GATEWAY_TOKEN,
+                LLM: !!process.env.LLM_API_KEY,
+                DISCORD: !!process.env.DISCORD_TOKEN
+            });
             res.json({
                 hasBraveKey: !!process.env.BRAVE_API_KEY,
                 hasGatewayToken: !!process.env.CLAWDBOT_GATEWAY_TOKEN,
