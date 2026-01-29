@@ -94,8 +94,21 @@ const startApp = async () => {
     // Reload dotenv to ensure we capture any changes if we just wrote it (though restart catches this usually)
     require('dotenv').config({ path: path.join(DATA_DIR, '.env') });
     
-    const SETUP_PASSWORD = process.env.SETUP_PASSWORD;
-    // ... middleware ...
+    // Middleware for setup protection
+    const checkSetupAuth = (req, res, next) => {
+        if (!SETUP_PASSWORD) return next();
+
+        const auth = { login: 'admin', password: SETUP_PASSWORD };
+        const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
+        const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
+
+        if (login && password && login === auth.login && password === auth.password) {
+            return next();
+        }
+
+        res.set('WWW-Authenticate', 'Basic realm="Moltbot Setup"');
+        res.status(401).send('Authentication required for setup.');
+    };
 
     if (isSetup) {
         // ... existing application mode logic ...
