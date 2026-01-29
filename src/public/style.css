@@ -243,7 +243,19 @@ button.loading .loader {
 }
 
 .hidden {
-    display: none !important;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, max-height 0.3s ease, padding 0.25s ease, margin 0.25s ease;
+}
+
+.form-group, .card {
+    transition: opacity 0.25s ease, max-height 0.3s ease, padding 0.25s ease, margin 0.25s ease;
+    max-height: 500px; /* Arbitrary large value for smooth animation */
+    opacity: 1;
 }
 
 .secondary-btn {
