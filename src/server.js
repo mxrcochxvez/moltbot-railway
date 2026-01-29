@@ -13,6 +13,8 @@ const CONFIG_MARKER = path.join(DATA_DIR, '.setup_complete');
 
 // Ensure data directory exists
 fs.ensureDirSync(DATA_DIR);
+const WORKSPACE_DIR = process.env.CLAWDBOT_WORKSPACE_DIR || path.join(DATA_DIR, 'workspace');
+fs.ensureDirSync(WORKSPACE_DIR);
 
 // Helper to start processes
 let moltbotProcess = null;
@@ -179,6 +181,41 @@ const startApp = async () => {
             proc.on('close', (code) => {
                 res.json({ ok: code === 0, output });
             });
+        });
+
+                res.json({ ok: code === 0, output });
+            });
+        });
+
+        // Backup/Export Endpoint
+        app.get('/setup/export', checkSetupAuth, async (req, res) => {
+            const tar = require('tar');
+            res.setHeader('content-type', 'application/gzip');
+            res.setHeader(
+                'content-disposition',
+                `attachment; filename="clawdbot-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.tar.gz"`,
+            );
+            
+            // Stream tar of DATA_DIR to response
+            tar.c(
+                {
+                    gzip: true,
+                    cwd: path.dirname(DATA_DIR),
+                    filter: (p) => !p.includes('node_modules') 
+                },
+                [path.basename(DATA_DIR)]
+            ).pipe(res);
+        });
+
+        // Reset Endpoint
+        app.post('/api/setup/reset', checkSetupAuth, async (req, res) => {
+            try {
+                await fs.remove(CONFIG_MARKER);
+                res.json({ success: true, message: 'Reset complete. Reloading...' });
+                setTimeout(() => process.exit(0), 1000);
+            } catch (e) {
+                res.status(500).json({ success: false, message: e.message });
+            }
         });
 
         setupProxy();

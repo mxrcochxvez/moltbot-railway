@@ -241,3 +241,25 @@ button.loading .loader {
 #status-message.error {
     color: var(--error);
 }
+
+.hidden {
+    display: none !important;
+}
+
+.secondary-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin-top: 0.5rem;
+}
+
+.secondary-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+#pairing-status {
+    margin-top: 10px;
+    font-size: 0.9em;
+}
+
+#pairing-status.success { color: var(--success); }
+#pairing-status.error { color: var(--error); }
