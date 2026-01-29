@@ -57,7 +57,8 @@ function clawArgs(args) {
 }
 
 function configPath() {
-  return process.env.CLAWDBOT_CONFIG_PATH?.trim() || path.join(STATE_DIR, "clawdbot.json");
+  // Moltbot writes to moltbot.json
+  return process.env.CLAWDBOT_CONFIG_PATH?.trim() || path.join(STATE_DIR, "moltbot.json");
 }
 
 function isConfigured() {
