@@ -132,6 +132,8 @@
         </div>
 
         <script>
+            // Wrap async initialization in IIFE
+            (async function() {
                 // Check for existing env vars
                 try {
                     const statusRes = await fetch('/api/setup/status');
@@ -162,6 +164,7 @@
                 } catch (e) {
                     console.error('Failed to check env status', e);
                 }
+            })();
 
             function togglePlatformFields() {
                 const platform = document.getElementById('platform').value;
