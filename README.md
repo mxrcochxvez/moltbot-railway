@@ -60,6 +60,17 @@ private template in your Railway dashboard.)_
 5. Visit your Railway URL (e.g., `https://web-production-xxxx.up.railway.app`)
    and enter your password to start setup.
 
+### Local Testing
+
+You can test the deployment locally using Docker Compose:
+
+```bash
+docker-compose up --build
+```
+
+The setup page will be available at `http://localhost:8080`. Default password:
+`admin`
+
 ## Terminal Usage
 
 Access the web terminal at:

@@ -183,9 +183,7 @@ const startApp = async () => {
             });
         });
 
-                res.json({ ok: code === 0, output });
-            });
-        });
+
 
         // Backup/Export Endpoint
         app.get('/setup/export', checkSetupAuth, async (req, res) => {

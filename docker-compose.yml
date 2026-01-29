@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - SETUP_PASSWORD=admin
+      - CLAWDBOT_STATE_DIR=/data/.clawdbot
+      - CLAWDBOT_WORKSPACE_DIR=/data/workspace
+      - CLAWDBOT_GATEWAY_BIND=0.0.0.0
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
