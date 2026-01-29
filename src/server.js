@@ -85,28 +85,17 @@ const setupProxy = () => {
 };
 
 const crypto = require('crypto');
+require('dotenv').config({ path: path.join(process.env.DATA_DIR || path.join(process.cwd(), 'data'), '.env') });
 
 // ... existing code ...
 
 const startApp = async () => {
     const isSetup = await fs.pathExists(CONFIG_MARKER);
+    // Reload dotenv to ensure we capture any changes if we just wrote it (though restart catches this usually)
+    require('dotenv').config({ path: path.join(DATA_DIR, '.env') });
+    
     const SETUP_PASSWORD = process.env.SETUP_PASSWORD;
-
-    // Middleware for setup protection
-    const checkSetupAuth = (req, res, next) => {
-        if (!SETUP_PASSWORD) return next();
-
-        const auth = { login: 'admin', password: SETUP_PASSWORD };
-        const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
-        const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
-
-        if (login && password && login === auth.login && password === auth.password) {
-            return next();
-        }
-
-        res.set('WWW-Authenticate', 'Basic realm="Moltbot Setup"');
-        res.status(401).send('Authentication required for setup.');
-    };
+    // ... middleware ...
 
     if (isSetup) {
         // ... existing application mode logic ...
@@ -131,7 +120,12 @@ const startApp = async () => {
             env: { 
                 ...process.env, 
                 PORT: '3000',
-                CLAWDBOT_GATEWAY_TOKEN: process.env.CLAWDBOT_GATEWAY_TOKEN
+                CLAWDBOT_GATEWAY_TOKEN: process.env.CLAWDBOT_GATEWAY_TOKEN,
+                BRAVE_API_KEY: process.env.BRAVE_API_KEY,
+                // Ensure persistence overrides if not set in runtime env (though they should be)
+                CLAWDBOT_STATE_DIR: process.env.CLAWDBOT_STATE_DIR || '/data/.clawdbot',
+                CLAWDBOT_WORKSPACE_DIR: process.env.CLAWDBOT_WORKSPACE_DIR || '/data/workspace',
+                CLAWDBOT_GATEWAY_BIND: process.env.CLAWDBOT_GATEWAY_BIND || '127.0.0.1'
             }
         });
 
@@ -146,7 +140,7 @@ const startApp = async () => {
 
         app.post('/api/setup', async (req, res) => {
             try {
-                const { llmSdkKey, botToken, provider, gatewayToken } = req.body;
+                const { llmSdkKey, botToken, provider, gatewayToken, braveApiKey } = req.body;
                 
                 // Use provided token or generate new one
                 const finalGatewayToken = gatewayToken || crypto.randomBytes(32).toString('hex');
@@ -159,6 +153,7 @@ LLM_PROVIDER=${provider}
 LLM_API_KEY=${llmSdkKey}
 DISCORD_TOKEN=${botToken}
 CLAWDBOT_GATEWAY_TOKEN=${finalGatewayToken}
+BRAVE_API_KEY=${braveApiKey || ''}
                 `;
                 await fs.writeFile(path.join(DATA_DIR, '.env'), envContent);
                 

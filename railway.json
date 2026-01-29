@@ -7,5 +7,34 @@
     "startCommand": "node src/server.js",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
+  },
+  "variables": {
+    "SETUP_PASSWORD": {
+      "description": "Password to protect the /setup page",
+      "required": true
+    },
+    "BRAVE_API_KEY": {
+      "description": "API Key for Brave Search (Optional)",
+      "required": false
+    },
+    "CLAWDBOT_GATEWAY_TOKEN": {
+      "description": "Token for connecting external clients (Auto-generated if empty)",
+      "required": false
+    },
+    "CLAWDBOT_STATE_DIR": {
+      "description": "Directory for Moltbot state",
+      "defaultValue": "/data/.clawdbot",
+      "required": false
+    },
+    "CLAWDBOT_WORKSPACE_DIR": {
+      "description": "Directory for Moltbot workspace files",
+      "defaultValue": "/data/workspace",
+      "required": false
+    },
+    "CLAWDBOT_GATEWAY_BIND": {
+      "description": "Host to bind the gateway to (127.0.0.1 for internal proxying)",
+      "defaultValue": "127.0.0.1",
+      "required": false
+    }
   }
 }

@@ -36,10 +36,25 @@ entry point (Port 8080).
 
 ## Deployment
 
+### One-Click Deploy
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/mxrcochxvez/moltbot-railway&plugins=mongodb)
+
+_(Note: The link above assumes your repo is public. You can also create a
+private template in your Railway dashboard.)_
+
+### Manual Deployment
+
 1. Fork/Clone this repository.
 2. Create a new project on Railway from GitHub.
-3. Add the following **Environment Variable**:
-   - `SETUP_PASSWORD`: (Required) A password to protect your setup page.
+3. Add the following **Environment Variables**:
+   - `SETUP_PASSWORD`: (Required) Password to protect your setup page.
+   - `BRAVE_API_KEY`: (Optional) API Key for Brave Search.
+   - `CLAWDBOT_GATEWAY_TOKEN`: (Optional) Admin token for the gateway.
+   - `CLAWDBOT_STATE_DIR`: (Optional) Default: `/data/.clawdbot`
+   - `CLAWDBOT_WORKSPACE_DIR`: (Optional) Default: `/data/workspace`
+   - `CLAWDBOT_GATEWAY_BIND`: (Optional) Default: `127.0.0.1`
+
 4. Deploy!
 5. Visit your Railway URL (e.g., `https://web-production-xxxx.up.railway.app`)
    and enter your password to start setup.
