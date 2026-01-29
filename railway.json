@@ -18,7 +18,8 @@
       "required": false
     },
     "CLAWDBOT_GATEWAY_TOKEN": {
-      "description": "Token for connecting external clients (Auto-generated if empty)",
+      "description": "Token for connecting external clients",
+      "defaultValue": "${{ secret(32) }}",
       "required": false
     },
     "CLAWDBOT_STATE_DIR": {
