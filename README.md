@@ -1,86 +1,85 @@
 # Moltbot on Railway
 
-A modernized, one-click deployable version of Moltbot (formerly Clawdbot) for
-[Railway](https://railway.app).
+Deploy [Moltbot](https://github.com/moltbot/moltbot) on
+[Railway](https://railway.app) with a streamlined setup UI.
 
-This project wraps the official Moltbot agent with a custom Setup UI and a
-secure configuration flow.
+## Quick Start
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/mxrcochxvez/moltbot-railway)
 
 ## Features
 
-- **Latest Moltbot**: Builds directly from the `v2026.1.25` tag for stability.
-- **Premium Setup UI**: deeply integrated setup wizard for configuring secrets.
-- **Web Terminal**: Integrated `ttyd` terminal accessible at `/terminal` for
-  full shell access.
-- **Linuxbrew**: Pre-installed Homebrew for easy package management.
-- **Secure**:
-  - Protected Setup Page (via `SETUP_PASSWORD`).
-  - Automatic Gateway Token generation.
+- **Latest Moltbot**: Builds from source for latest features
+- **Setup UI**: Web-based wizard for configuring LLM providers and chat
+  platforms
+- **Telegram & Discord**: Built-in support with device pairing
+- **Persistent Config**: Uses Railway volumes for data persistence
 
-## How it Works
+## Environment Variables
 
-This project runs a **Node.js Wrapper** (`src/server.js`) that acts as the main
-entry point (Port 8080).
+| Variable         | Required | Description                                        |
+| ---------------- | -------- | -------------------------------------------------- |
+| `SETUP_PASSWORD` | Yes      | Password to protect setup page (username: `admin`) |
+| `BRAVE_API_KEY`  | No       | For Brave Search integration                       |
 
-1. **Proxy Architecture**:
-   - **`/terminal`**: Proxies to `ttyd` (running internally on port 7681).
-   - **`/` (Root)**: Proxies all other traffic to **Moltbot** (running
-     internally on port 3000).
-   - _This ensures the Moltbot UI is fully exposed via your public Railway URL._
+## Data Persistence
 
-2. **Setup Mode**:
-   - If no configuration is found in `/data`, the wrapper serves the Setup
-     Wizard.
-   - Once configured, it saves credentials to `/data/.env` and restarts into
-     Proxy Mode.
+**Important**: Attach a Railway Volume mounted at `/data` to persist your
+configuration across deploys.
 
-## Deployment
+1. Railway Dashboard → Your Service → **Volumes**
+2. Click **Add Volume**
+3. Mount path: `/data`
+4. Deploy
 
-### One-Click Deploy
+Without a volume, you'll need to re-run setup after each deploy.
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/mxrcochxvez/moltbot-railway&plugins=mongodb)
+## How It Works
 
-_(Note: The link above assumes your repo is public. You can also create a
-private template in your Railway dashboard.)_
+1. **Setup Mode**: If no config exists, shows the setup wizard at `/`
+2. **Running Mode**: Once configured, proxies to Moltbot gateway at `/clawdbot`
 
-### Manual Deployment
+The wrapper (`src/server.js`) manages:
 
-1. Fork/Clone this repository.
-2. Create a new project on Railway from GitHub.
-3. Add the following **Environment Variables**:
-   - `SETUP_PASSWORD`: (Required) Password to protect your setup page. (Username
-     is `admin`)
-   - `BRAVE_API_KEY`: (Optional) API Key for Brave Search.
-   - `CLAWDBOT_GATEWAY_TOKEN`: (Optional) Admin token for the gateway.
-   - `CLAWDBOT_STATE_DIR`: (Optional) Default: `/data/.clawdbot`
-   - `CLAWDBOT_WORKSPACE_DIR`: (Optional) Default: `/data/workspace`
-   - `CLAWDBOT_GATEWAY_BIND`: (Optional) Default: `127.0.0.1`
+- Setup wizard and API endpoints
+- Moltbot gateway lifecycle
+- Telegram/Discord channel configuration
+- Device pairing flow
 
-4. Deploy!
-5. Visit your Railway URL (e.g., `https://web-production-xxxx.up.railway.app`)
-   and enter your password to start setup.
+## Post-Setup
 
-### Local Testing
+After setup completes:
 
-You can test the deployment locally using Docker Compose:
+1. **Moltbot UI**: Visit `/clawdbot` for the chat interface
+2. **Device Pairing**: Message your bot on Telegram/Discord, get the pairing
+   code, enter it in the setup page
+
+## Running CLI Commands
+
+For CLI access (running `clawdbot config set ...` etc):
+
+- Use Railway's **Shell** tab in the dashboard
+- Or SSH into the container
+
+## Local Development
 
 ```bash
 docker-compose up --build
 ```
 
-The setup page will be available at `http://localhost:8080`. Default password:
-`admin`
+Setup page available at `http://localhost:8080` (password: `admin`)
 
-## Terminal Usage
+## Troubleshooting
 
-Access the web terminal at:
+**Bot not responding after setup?**
 
-```
-https://<your-app-url>/terminal
-```
+- Check Railway logs for gateway errors
+- Ensure you completed device pairing (Telegram/Discord require it)
 
-Default user is `railway`. You can use `brew` to install tools:
+**Asked to re-setup after redeploy?**
 
-```bash
-brew install htop
-```
+- Attach a volume at `/data` (see Data Persistence above)
+
+**Permission errors?**
+
+- The Dockerfile runs as root to avoid volume permission issues
