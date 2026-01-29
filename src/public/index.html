@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Moltbot Setup</title>
+        <link rel="stylesheet" href="style.css">
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap"
+            rel="stylesheet"
+        >
+    </head>
+    <body>
+        <div class="background-mesh"></div>
+        <div class="container">
+            <header>
+                <div class="logo">
+                    <svg
+                        width="40"
+                        height="40"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
+                        <path
+                            d="M12 2L2 7L12 12L22 7L12 2Z"
+                            stroke="white"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                        <path
+                            d="M2 17L12 22L22 17"
+                            stroke="white"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                        <path
+                            d="M2 12L12 17L22 12"
+                            stroke="white"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+                    <h1>Moltbot</h1>
+                </div>
+                <p class="subtitle">Deploy your personal AI agent</p>
+            </header>
+
+            <form id="setup-form">
+                <div class="form-group">
+                    <label for="provider">LLM Provider</label>
+                    <div class="select-wrapper">
+                        <select id="provider" name="provider" required>
+                            <option value="anthropic">
+                                Anthropic (Claude)
+                            </option>
+                            <option value="openai">OpenAI (GPT-4)</option>
+                            <option value="ollama">Ollama (Local)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="llmSdkKey">API Key</label>
+                    <input
+                        type="password"
+                        id="llmSdkKey"
+                        name="llmSdkKey"
+                        placeholder="sk-..."
+                        required
+                    >
+                    <span class="hint">Your provider's API key</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="botToken">Discord/Telegram Token</label>
+                    <input
+                        type="password"
+                        id="botToken"
+                        name="botToken"
+                        placeholder="Token"
+                        required
+                    >
+                    <span class="hint"
+                    >The bot token from Discord or Telegram developer
+                        portal</span>
+                </div>
+
+                <div class="form-group">
+                <label for="gatewayToken">Gateway Token (Optional)</label>
+                <input type="password" id="gatewayToken" name="gatewayToken" placeholder="Auto-generated if empty">
+                <span class="hint">Secret token for connecting external clients</span>
+            </div>
+
+            <button type="submit" id="deploy-btn">
+                <span class="btn-text">Initialize Agent</span>
+                <div class="loader"></div>
+            </button>
+            </form>
+
+            <div id="status-message"></div>
+        </div>
+
+        <script>
+            document.getElementById("setup-form")
+                .addEventListener("submit", async (e) => {
+                    e.preventDefault();
+                    const btn = document.getElementById(
+                        "deploy-btn",
+                    );
+                    const status = document.getElementById(
+                        "status-message",
+                    );
+
+                    btn.classList.add("loading");
+                    status.textContent = "";
+                    status.className = "";
+
+                    const formData = {
+                        provider: document.getElementById('provider').value,
+                        llmSdkKey: document.getElementById('llmSdkKey').value,
+                        botToken: document.getElementById('botToken').value,
+                        gatewayToken: document.getElementById('gatewayToken').value
+                    };
+
+                    try {
+                        const response = await fetch(
+                            "/api/setup",
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type":
+                                        "application/json",
+                                },
+                                body: JSON.stringify(formData),
+                            },
+                        );
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            status.textContent =
+                                "Setup complete! Connecting to neural interface...";
+                            status.classList.add("success");
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 2000);
+                        } else {
+                            throw new Error(result.message);
+                        }
+                    } catch (error) {
+                        status.textContent = "Error: " +
+                            error.message;
+                        status.classList.add("error");
+                        btn.classList.remove("loading");
+                    }
+                });
+        </script>
+    </body>
+</html>
