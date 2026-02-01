@@ -17,22 +17,36 @@
       "description": "API Key for Brave Search (Optional)",
       "required": false
     },
-    "CLAWDBOT_GATEWAY_TOKEN": {
+    "OPENCLAW_GATEWAY_TOKEN": {
       "description": "Token for connecting external clients",
       "defaultValue": "${{ secret(32) }}",
       "required": false
     },
+    "CLAWDBOT_GATEWAY_TOKEN": {
+      "description": "Legacy token env (copied to OPENCLAW_GATEWAY_TOKEN on startup)",
+      "required": false
+    },
+    "OPENCLAW_STATE_DIR": {
+      "description": "Directory for OpenClaw state",
+      "defaultValue": "/data/.openclaw",
+      "required": false
+    },
     "CLAWDBOT_STATE_DIR": {
-      "description": "Directory for Moltbot state",
+      "description": "Legacy state dir (copied into /data/.openclaw on startup)",
       "defaultValue": "/data/.clawdbot",
       "required": false
     },
-    "CLAWDBOT_WORKSPACE_DIR": {
-      "description": "Directory for Moltbot workspace files",
+    "OPENCLAW_WORKSPACE_DIR": {
+      "description": "Directory for OpenClaw workspace files",
       "defaultValue": "/data/workspace",
       "required": false
     },
-    "CLAWDBOT_GATEWAY_BIND": {
+    "CLAWDBOT_WORKSPACE_DIR": {
+      "description": "Legacy workspace dir",
+      "defaultValue": "/data/workspace",
+      "required": false
+    },
+    "OPENCLAW_GATEWAY_BIND": {
       "description": "Host to bind the gateway to (127.0.0.1 for internal proxying)",
       "defaultValue": "127.0.0.1",
       "required": false

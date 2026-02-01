@@ -9,9 +9,9 @@ services:
       - NODE_ENV=production
       - PORT=8080
       - SETUP_PASSWORD=admin
-      - CLAWDBOT_STATE_DIR=/data/.clawdbot
-      - CLAWDBOT_WORKSPACE_DIR=/data/workspace
-      - CLAWDBOT_GATEWAY_BIND=0.0.0.0
+      - OPENCLAW_STATE_DIR=/data/.openclaw
+      - OPENCLAW_WORKSPACE_DIR=/data/workspace
+      - OPENCLAW_GATEWAY_BIND=0.0.0.0
     volumes:
       - ./data:/data
     restart: unless-stopped

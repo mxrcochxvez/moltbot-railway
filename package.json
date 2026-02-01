@@ -1,7 +1,7 @@
 {
   "name": "moltbot-railway",
   "version": "1.0.0",
-  "description": "Railway deployment for Moltbot with custom setup UI",
+  "description": "Railway deployment for OpenClaw with custom setup UI",
   "type": "module",
   "main": "src/server.js",
   "scripts": {
@@ -15,6 +15,6 @@
     "tar": "^7.4.3"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.12.0"
   }
 }
