@@ -9,7 +9,7 @@ import httpProxy from "http-proxy";
 import * as tar from "tar";
 
 const DEFAULT_STATE_DIRNAME = ".openclaw";
-const LEGACY_STATE_DIRNAMES = [".clawdbot", ".moltbot", ".moldbot"];
+const LEGACY_STATE_DIRNAMES = [".clawdbot", ".moltbot"];
 
 function resolveStateDir() {
   const openclaw = process.env.OPENCLAW_STATE_DIR?.trim();
@@ -79,7 +79,7 @@ function copyLegacyFileIfMissing(fileName, stateDir, legacyDirs) {
 function copyLegacyConfigIfMissing(stateDir, legacyDirs) {
   const canonical = path.join(stateDir, "openclaw.json");
   if (fs.existsSync(canonical)) return;
-  const legacyNames = ["clawdbot.json", "moltbot.json", "moldbot.json"];
+  const legacyNames = ["clawdbot.json", "moltbot.json"];
   const candidates = [stateDir, ...legacyDirs];
   for (const dir of candidates) {
     for (const name of legacyNames) {
@@ -103,7 +103,7 @@ function migrateLegacyState(stateDir, legacyDirs) {
       if (!dirHasFiles(legacyDir)) continue;
       try {
         fs.mkdirSync(stateDir, { recursive: true });
-        fs.cpSync(legacyDir, stateDir, { recursive: true, errorOnExist: false, force: false });
+        fs.cpSync(legacyDir, stateDir, { recursive: true });
         console.log(`[migration] Copied legacy state from ${legacyDir} to ${stateDir}.`);
       } catch (err) {
         console.warn(`[migration] Failed to copy legacy state from ${legacyDir}: ${String(err)}`);
@@ -175,11 +175,11 @@ const INTERNAL_GATEWAY_HOST =
 const GATEWAY_TARGET = `http://${INTERNAL_GATEWAY_HOST}:${INTERNAL_GATEWAY_PORT}`;
 
 // Always run the built-from-source CLI entry directly.
-const CLAWDBOT_ENTRY = process.env.CLAWDBOT_ENTRY?.trim()
-  || process.env.OPENCLAW_ENTRY?.trim()
+const CLAWDBOT_ENTRY = process.env.OPENCLAW_ENTRY?.trim()
+  || process.env.CLAWDBOT_ENTRY?.trim()
   || "/openclaw/dist/entry.js";
-const CLAWDBOT_NODE = process.env.CLAWDBOT_NODE?.trim()
-  || process.env.OPENCLAW_NODE?.trim()
+const CLAWDBOT_NODE = process.env.OPENCLAW_NODE?.trim()
+  || process.env.CLAWDBOT_NODE?.trim()
   || "node";
 
 function clawArgs(args) {

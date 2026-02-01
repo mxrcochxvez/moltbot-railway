@@ -58,16 +58,16 @@ After setup completes:
 
 For CLI access (running `openclaw config set ...` etc):
 
-## Config migration
+- Use Railway's **Shell** tab in the dashboard
+- Or SSH into the container
+
+## Config Migration
 
 OpenClaw stores config in `/data/.openclaw/openclaw.json`. On startup, the wrapper
-copies legacy Moltbot/ClawdBot state (such as `/data/.clawdbot` or `/data/.moltbot`)
+copies legacy Moltbot/Clawdbot state (such as `/data/.clawdbot` or `/data/.moltbot`)
 into `/data/.openclaw` when the new directory is empty, so existing Railway volumes
 keep working. Legacy config files like `moltbot.json` are copied to
 `openclaw.json` if needed. Legacy gateway tokens are reused if present.
-
-- Use Railway's **Shell** tab in the dashboard
-- Or SSH into the container
 
 ## Local Development
 
