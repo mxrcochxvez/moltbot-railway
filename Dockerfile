@@ -1,7 +1,7 @@
-# Build clawdbot from source to avoid npm packaging gaps (some dist files are not shipped).
-FROM node:22-bookworm AS clawdbot-build
+# Build OpenClaw from source to avoid npm packaging gaps (some dist files are not shipped).
+FROM node:22.12-bookworm AS openclaw-build
 
-# Dependencies needed for clawdbot build
+# Dependencies needed for OpenClaw build
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   git \
@@ -12,18 +12,19 @@ RUN apt-get update \
   g++ \
   && rm -rf /var/lib/apt/lists/*
 
-# Install Bun (clawdbot build uses it)
+# Install Bun (OpenClaw build uses it)
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:${PATH}"
 
 RUN corepack enable
 
-WORKDIR /clawdbot
+WORKDIR /openclaw
 
 # Pin to a known ref (tag/branch). If it doesn't exist, fall back to main.
-ARG CLAWDBOT_GIT_REF=main
-RUN git clone --depth 1 --branch "${CLAWDBOT_GIT_REF}" https://github.com/moltbot/moltbot.git . || \
-  git clone --depth 1 https://github.com/moltbot/moltbot.git .
+ARG OPENCLAW_GIT_REF=v2026.1.30
+ARG CLAWDBOT_GIT_REF
+RUN git clone --depth 1 --branch "${OPENCLAW_GIT_REF:-${CLAWDBOT_GIT_REF:-main}}" https://github.com/openclaw/openclaw.git . || \
+  git clone --depth 1 https://github.com/openclaw/openclaw.git .
 
 # Patch: relax version requirements for packages that may reference unpublished versions.
 # Apply to all extension package.json files to handle workspace protocol (workspace:*).
@@ -42,7 +43,7 @@ RUN pnpm ui:install && pnpm ui:build
 
 
 # Runtime image
-FROM node:22-bookworm
+FROM node:22.12-bookworm
 ENV NODE_ENV=production
 
 RUN apt-get update \
@@ -68,12 +69,13 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install --omit=dev && npm cache clean --force
 
-# Copy built clawdbot
-COPY --from=clawdbot-build /clawdbot /clawdbot
+# Copy built OpenClaw
+COPY --from=openclaw-build /openclaw /openclaw
 
-# Provide a clawdbot executable
-RUN printf '%s\n' '#!/usr/bin/env bash' 'exec node /clawdbot/dist/entry.js "$@"' > /usr/local/bin/clawdbot \
-  && chmod +x /usr/local/bin/clawdbot
+# Provide OpenClaw executables (with legacy aliases)
+RUN printf '%s\n' '#!/usr/bin/env bash' 'exec node /openclaw/dist/entry.js "$@"' > /usr/local/bin/openclaw \
+  && chmod +x /usr/local/bin/openclaw \
+  && ln -s /usr/local/bin/openclaw /usr/local/bin/clawdbot
 
 COPY src ./src
 

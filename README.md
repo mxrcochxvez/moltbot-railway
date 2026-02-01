@@ -1,6 +1,6 @@
-# Moltbot on Railway
+# OpenClaw on Railway
 
-Deploy [Moltbot](https://github.com/moltbot/moltbot) on
+Deploy [OpenClaw](https://github.com/openclaw/openclaw) on
 [Railway](https://railway.app) with a streamlined setup UI.
 
 ## Quick Start
@@ -9,7 +9,7 @@ Deploy [Moltbot](https://github.com/moltbot/moltbot) on
 
 ## Features
 
-- **Latest Moltbot**: Builds from source for latest features
+- **Latest OpenClaw**: Builds from source for latest features
 - **Setup UI**: Web-based wizard for configuring LLM providers and chat
   platforms
 - **Telegram & Discord**: Built-in support with device pairing
@@ -37,12 +37,12 @@ Without a volume, you'll need to re-run setup after each deploy.
 ## How It Works
 
 1. **Setup Mode**: If no config exists, shows the setup wizard at `/`
-2. **Running Mode**: Once configured, proxies to Moltbot gateway at `/clawdbot`
+2. **Running Mode**: Once configured, proxies to OpenClaw gateway at `/openclaw` (legacy `/clawdbot` still works)
 
 The wrapper (`src/server.js`) manages:
 
 - Setup wizard and API endpoints
-- Moltbot gateway lifecycle
+- OpenClaw gateway lifecycle
 - Telegram/Discord channel configuration
 - Device pairing flow
 
@@ -50,13 +50,21 @@ The wrapper (`src/server.js`) manages:
 
 After setup completes:
 
-1. **Moltbot UI**: Visit `/clawdbot` for the chat interface
+1. **OpenClaw UI**: Visit `/openclaw` for the chat interface (legacy `/clawdbot` still works)
 2. **Device Pairing**: Message your bot on Telegram/Discord, get the pairing
    code, enter it in the setup page
 
 ## Running CLI Commands
 
-For CLI access (running `clawdbot config set ...` etc):
+For CLI access (running `openclaw config set ...` etc):
+
+## Config migration
+
+OpenClaw stores config in `/data/.openclaw/openclaw.json`. On startup, the wrapper
+copies legacy Moltbot/ClawdBot state (such as `/data/.clawdbot` or `/data/.moltbot`)
+into `/data/.openclaw` when the new directory is empty, so existing Railway volumes
+keep working. Legacy config files like `moltbot.json` are copied to
+`openclaw.json` if needed. Legacy gateway tokens are reused if present.
 
 - Use Railway's **Shell** tab in the dashboard
 - Or SSH into the container

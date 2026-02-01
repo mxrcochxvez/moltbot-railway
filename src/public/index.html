@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Moltbot Setup</title>
+        <title>OpenClaw Setup</title>
         <link rel="stylesheet" href="style.css">
         <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap"
@@ -44,7 +44,7 @@
                             stroke-linejoin="round"
                         />
                     </svg>
-                    <h1>Moltbot</h1>
+                    <h1>OpenClaw</h1>
                 </div>
                 <p class="subtitle">Deploy your personal AI agent</p>
             </header>
@@ -259,10 +259,10 @@
                         logEl.textContent = result.output || '(no output)';
 
                         if (result.ok) {
-                            statusEl.textContent = "Setup complete! Redirecting to Moltbot UI...";
+                            statusEl.textContent = "Setup complete! Redirecting to OpenClaw UI...";
                             statusEl.classList.add("success");
                             setTimeout(() => {
-                                window.location.href = '/clawdbot';
+                                window.location.href = '/openclaw';
                             }, 2000);
                         } else {
                             throw new Error(result.output || 'Setup failed');

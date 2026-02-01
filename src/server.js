@@ -8,18 +8,131 @@ import express from "express";
 import httpProxy from "http-proxy";
 import * as tar from "tar";
 
+const DEFAULT_STATE_DIRNAME = ".openclaw";
+const LEGACY_STATE_DIRNAMES = [".clawdbot", ".moltbot", ".moldbot"];
+
+function resolveStateDir() {
+  const openclaw = process.env.OPENCLAW_STATE_DIR?.trim();
+  if (openclaw) return openclaw;
+  const legacy = process.env.CLAWDBOT_STATE_DIR?.trim();
+  if (legacy) {
+    const base = path.basename(legacy);
+    if (LEGACY_STATE_DIRNAMES.includes(base)) {
+      return path.join(path.dirname(legacy), DEFAULT_STATE_DIRNAME);
+    }
+    return legacy;
+  }
+  return path.join(os.homedir(), DEFAULT_STATE_DIRNAME);
+}
+
+function resolveWorkspaceDir(stateDir) {
+  return (
+    process.env.OPENCLAW_WORKSPACE_DIR?.trim()
+    || process.env.CLAWDBOT_WORKSPACE_DIR?.trim()
+    || path.join(stateDir, "workspace")
+  );
+}
+
+function resolveLegacyStateDirs(stateDir) {
+  const dirs = new Set();
+  const legacy = process.env.CLAWDBOT_STATE_DIR?.trim();
+  if (legacy) dirs.add(legacy);
+  for (const name of LEGACY_STATE_DIRNAMES) {
+    dirs.add(path.join(os.homedir(), name));
+  }
+  const base = path.basename(stateDir);
+  const parent = path.dirname(stateDir);
+  if (base === DEFAULT_STATE_DIRNAME && parent) {
+    for (const name of LEGACY_STATE_DIRNAMES) {
+      dirs.add(path.join(parent, name));
+    }
+  }
+  dirs.delete(stateDir);
+  return Array.from(dirs);
+}
+
+function dirHasFiles(dir) {
+  try {
+    return fs.existsSync(dir) && fs.readdirSync(dir).length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function copyLegacyFileIfMissing(fileName, stateDir, legacyDirs) {
+  const target = path.join(stateDir, fileName);
+  if (fs.existsSync(target)) return;
+  for (const legacyDir of legacyDirs) {
+    const legacyPath = path.join(legacyDir, fileName);
+    if (fs.existsSync(legacyPath)) {
+      try {
+        fs.mkdirSync(stateDir, { recursive: true });
+        fs.copyFileSync(legacyPath, target);
+      } catch {
+        // best-effort
+      }
+      return;
+    }
+  }
+}
+
+function copyLegacyConfigIfMissing(stateDir, legacyDirs) {
+  const canonical = path.join(stateDir, "openclaw.json");
+  if (fs.existsSync(canonical)) return;
+  const legacyNames = ["clawdbot.json", "moltbot.json", "moldbot.json"];
+  const candidates = [stateDir, ...legacyDirs];
+  for (const dir of candidates) {
+    for (const name of legacyNames) {
+      const candidate = path.join(dir, name);
+      if (fs.existsSync(candidate)) {
+        try {
+          fs.mkdirSync(stateDir, { recursive: true });
+          fs.copyFileSync(candidate, canonical);
+        } catch {
+          // best-effort
+        }
+        return;
+      }
+    }
+  }
+}
+
+function migrateLegacyState(stateDir, legacyDirs) {
+  if (!dirHasFiles(stateDir)) {
+    for (const legacyDir of legacyDirs) {
+      if (!dirHasFiles(legacyDir)) continue;
+      try {
+        fs.mkdirSync(stateDir, { recursive: true });
+        fs.cpSync(legacyDir, stateDir, { recursive: true, errorOnExist: false, force: false });
+        console.log(`[migration] Copied legacy state from ${legacyDir} to ${stateDir}.`);
+      } catch (err) {
+        console.warn(`[migration] Failed to copy legacy state from ${legacyDir}: ${String(err)}`);
+      }
+      break;
+    }
+  }
+  copyLegacyFileIfMissing("gateway.token", stateDir, legacyDirs);
+  copyLegacyConfigIfMissing(stateDir, legacyDirs);
+}
+
 // Railway deployments sometimes inject PORT=3000 by default. We want the wrapper to
 // reliably listen on 8080 unless explicitly overridden.
-const PORT = Number.parseInt(process.env.CLAWDBOT_PUBLIC_PORT ?? process.env.PORT ?? "8080", 10);
-const STATE_DIR = process.env.CLAWDBOT_STATE_DIR?.trim() || path.join(os.homedir(), ".clawdbot");
-const WORKSPACE_DIR = process.env.CLAWDBOT_WORKSPACE_DIR?.trim() || path.join(STATE_DIR, "workspace");
+const PORT = Number.parseInt(
+  process.env.OPENCLAW_PUBLIC_PORT ?? process.env.CLAWDBOT_PUBLIC_PORT ?? process.env.PORT ?? "8080",
+  10,
+);
+const STATE_DIR = resolveStateDir();
+const WORKSPACE_DIR = resolveWorkspaceDir(STATE_DIR);
+const LEGACY_STATE_DIRS = resolveLegacyStateDirs(STATE_DIR);
+
+migrateLegacyState(STATE_DIR, LEGACY_STATE_DIRS);
 
 // Protect /setup with a user-provided password.
 const SETUP_PASSWORD = process.env.SETUP_PASSWORD?.trim();
 
-// Gateway admin token (protects Clawdbot gateway + Control UI).
+// Gateway admin token (protects OpenClaw gateway + Control UI).
 function resolveGatewayToken() {
-  const envTok = process.env.CLAWDBOT_GATEWAY_TOKEN?.trim();
+  const envTok = process.env.OPENCLAW_GATEWAY_TOKEN?.trim() || process.env.CLAWDBOT_GATEWAY_TOKEN?.trim();
   if (envTok) return envTok;
 
   const tokenPath = path.join(STATE_DIR, "gateway.token");
@@ -42,23 +155,41 @@ function resolveGatewayToken() {
 
 const CLAWDBOT_GATEWAY_TOKEN = resolveGatewayToken();
 process.env.CLAWDBOT_GATEWAY_TOKEN = CLAWDBOT_GATEWAY_TOKEN;
+process.env.OPENCLAW_GATEWAY_TOKEN = CLAWDBOT_GATEWAY_TOKEN;
+process.env.OPENCLAW_STATE_DIR = STATE_DIR;
+process.env.OPENCLAW_WORKSPACE_DIR = WORKSPACE_DIR;
 
 // Where the gateway will listen internally (we proxy to it).
-const INTERNAL_GATEWAY_PORT = Number.parseInt(process.env.INTERNAL_GATEWAY_PORT ?? "18789", 10);
-const INTERNAL_GATEWAY_HOST = process.env.INTERNAL_GATEWAY_HOST ?? "127.0.0.1";
+const INTERNAL_GATEWAY_PORT = Number.parseInt(
+  process.env.OPENCLAW_GATEWAY_PORT
+    ?? process.env.CLAWDBOT_GATEWAY_PORT
+    ?? process.env.INTERNAL_GATEWAY_PORT
+    ?? "18789",
+  10,
+);
+const INTERNAL_GATEWAY_HOST =
+  process.env.OPENCLAW_GATEWAY_BIND
+  ?? process.env.CLAWDBOT_GATEWAY_BIND
+  ?? process.env.INTERNAL_GATEWAY_HOST
+  ?? "127.0.0.1";
 const GATEWAY_TARGET = `http://${INTERNAL_GATEWAY_HOST}:${INTERNAL_GATEWAY_PORT}`;
 
 // Always run the built-from-source CLI entry directly.
-const CLAWDBOT_ENTRY = process.env.CLAWDBOT_ENTRY?.trim() || "/clawdbot/dist/entry.js";
-const CLAWDBOT_NODE = process.env.CLAWDBOT_NODE?.trim() || "node";
+const CLAWDBOT_ENTRY = process.env.CLAWDBOT_ENTRY?.trim()
+  || process.env.OPENCLAW_ENTRY?.trim()
+  || "/openclaw/dist/entry.js";
+const CLAWDBOT_NODE = process.env.CLAWDBOT_NODE?.trim()
+  || process.env.OPENCLAW_NODE?.trim()
+  || "node";
 
 function clawArgs(args) {
   return [CLAWDBOT_ENTRY, ...args];
 }
 
 function configPath() {
-  // Moltbot writes to moltbot.json
-  return process.env.CLAWDBOT_CONFIG_PATH?.trim() || path.join(STATE_DIR, "moltbot.json");
+  return process.env.OPENCLAW_CONFIG_PATH?.trim()
+    || process.env.CLAWDBOT_CONFIG_PATH?.trim()
+    || path.join(STATE_DIR, "openclaw.json");
 }
 
 function isConfigured() {
@@ -79,12 +210,15 @@ function sleep(ms) {
 async function waitForGatewayReady(opts = {}) {
   const timeoutMs = opts.timeoutMs ?? 20_000;
   const start = Date.now();
+  const healthPaths = ["/openclaw", "/clawdbot"];
   while (Date.now() - start < timeoutMs) {
-    try {
-      const res = await fetch(`${GATEWAY_TARGET}/clawdbot`, { method: "GET" });
-      if (res) return true;
-    } catch {
-      // not ready
+    for (const pathSuffix of healthPaths) {
+      try {
+        const res = await fetch(`${GATEWAY_TARGET}${pathSuffix}`, { method: "GET" });
+        if (res) return true;
+      } catch {
+        // not ready
+      }
     }
     await sleep(250);
   }
@@ -119,6 +253,8 @@ async function startGateway() {
       ...process.env,
       CLAWDBOT_STATE_DIR: STATE_DIR,
       CLAWDBOT_WORKSPACE_DIR: WORKSPACE_DIR,
+      OPENCLAW_STATE_DIR: STATE_DIR,
+      OPENCLAW_WORKSPACE_DIR: WORKSPACE_DIR,
     },
   });
 
@@ -175,14 +311,14 @@ function requireSetupAuth(req, res, next) {
   const header = req.headers.authorization || "";
   const [scheme, encoded] = header.split(" ");
   if (scheme !== "Basic" || !encoded) {
-    res.set("WWW-Authenticate", 'Basic realm="Moltbot Setup"');
+    res.set("WWW-Authenticate", 'Basic realm="OpenClaw Setup"');
     return res.status(401).send("Auth required");
   }
   const decoded = Buffer.from(encoded, "base64").toString("utf8");
   const idx = decoded.indexOf(":");
   const password = idx >= 0 ? decoded.slice(idx + 1) : "";
   if (password !== SETUP_PASSWORD) {
-    res.set("WWW-Authenticate", 'Basic realm="Moltbot Setup"');
+    res.set("WWW-Authenticate", 'Basic realm="OpenClaw Setup"');
     return res.status(401).send("Invalid password");
   }
   return next();
@@ -240,6 +376,8 @@ function runCmd(cmd, args, opts = {}) {
         ...process.env,
         CLAWDBOT_STATE_DIR: STATE_DIR,
         CLAWDBOT_WORKSPACE_DIR: WORKSPACE_DIR,
+        OPENCLAW_STATE_DIR: STATE_DIR,
+        OPENCLAW_WORKSPACE_DIR: WORKSPACE_DIR,
       },
     });
 
@@ -397,7 +535,7 @@ app.get("/setup/export", requireSetupAuth, async (_req, res) => {
   res.setHeader("content-type", "application/gzip");
   res.setHeader(
     "content-disposition",
-    `attachment; filename="clawdbot-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.tar.gz"`,
+    `attachment; filename="openclaw-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.tar.gz"`,
   );
 
   const stream = tar.c(
@@ -439,6 +577,9 @@ app.use(async (req, res) => {
     }
   }
 
+  if (req.path.startsWith("/clawdbot")) {
+    req.url = req.url.replace(/^\/clawdbot/, "/openclaw");
+  }
   return proxy.web(req, res, { target: GATEWAY_TARGET });
 });
 
@@ -463,6 +604,9 @@ server.on("upgrade", async (req, socket, head) => {
   } catch {
     socket.destroy();
     return;
+  }
+  if (req.url?.startsWith("/clawdbot")) {
+    req.url = req.url.replace(/^\/clawdbot/, "/openclaw");
   }
   proxy.ws(req, socket, head, { target: GATEWAY_TARGET });
 });
