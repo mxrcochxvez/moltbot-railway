@@ -16,7 +16,8 @@ RUN apt-get update \
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:${PATH}"
 
-RUN corepack enable
+# Avoid Corepack signature/key issues on some builders (e.g., Railway) by installing pnpm directly.
+RUN npm install -g pnpm@10.23.0
 
 WORKDIR /openclaw
 
